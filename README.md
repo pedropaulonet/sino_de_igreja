@@ -1,7 +1,9 @@
 Sino de Igreja
-================
+===============
 
 Programa simples em Python para tocar sinos em horários programados (Linux / Raspberry Pi).
+
+![Sino de Igreja - Interface Terminal](imagens/screenshoot.png)
 
 Principais pontos
 - Configuração em `config.json` (chaves: `sons`, `programacao`, `hora`, `minuto`, `som`, `repeticoes`).
