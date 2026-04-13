@@ -43,6 +43,7 @@ class AudioPlayer:
         # Track subprocesses started by this player so we can stop them reliably
         self._procs = []
         self._lock = threading.Lock()
+        self._stop_requested = False
         try:
             import pygame
             pygame.mixer.init()
@@ -61,12 +62,17 @@ class AudioPlayer:
             print(f"  AVISO: Arquivo não encontrado: {filepath}")
             return False
 
+        self._stop_requested = False
+
         if self.pygame_available:
             import pygame
             if blocking:
                 pygame.mixer.music.load(filepath)
                 pygame.mixer.music.play()
                 while pygame.mixer.music.get_busy():
+                    if self._stop_requested:
+                        pygame.mixer.music.stop()
+                        break
                     time.sleep(0.1)
             else:
                 pygame.mixer.Sound(filepath).play()
@@ -79,7 +85,15 @@ class AudioPlayer:
 
             if blocking:
                 try:
-                    proc.wait()
+                    while proc.poll() is None:
+                        if self._stop_requested:
+                            try:
+                                proc.terminate()
+                                proc.wait(timeout=1)
+                            except Exception:
+                                proc.kill()
+                            break
+                        time.sleep(0.1)
                 finally:
                     with self._lock:
                         if proc in self._procs:
@@ -91,9 +105,11 @@ class AudioPlayer:
         return True
 
     def stop(self):
+        self._stop_requested = True
         if self.pygame_available:
             import pygame
             pygame.mixer.music.stop()
+            pygame.mixer.stop()  # Also stop Sound channels
         elif self.player_command:
             # Terminate only processes we started
             with self._lock:
@@ -132,6 +148,7 @@ class ScheduleManager:
         self.running = True
         self.ultimo_toque: Optional[datetime] = None
         self.tocando_agora = False
+        self.parar_loop = False
 
     def carregar_config(self) -> bool:
         try:
@@ -144,9 +161,6 @@ class ScheduleManager:
         except json.JSONDecodeError as e:
             print(f"ERRO: JSON inválido: {e}")
             return False
-
-    def hora_permitida(self) -> bool:
-        return True
 
     def obter_proximos_toques(self, limite: int = 5) -> List[Dict]:
         agora = datetime.now()
@@ -182,6 +196,7 @@ class ScheduleManager:
 
         self.tocando_agora = True
         self.parar_loop = False
+        self.audio._stop_requested = False
 
         sonido_key = item["som"]
         repeticiones = item["repeticoes"]
@@ -199,13 +214,7 @@ class ScheduleManager:
                 print("  Parado pelo usuário")
                 break
             print(f"  Toque {i+1}/{repeticiones}")
-            # Play non-blocking via thread so UI stays responsive; but wait for each play to finish
-            if self.audio.pygame_available:
-                # pygame supports blocking playback through mixer
-                self.audio.play(filepath, blocking=True)
-            else:
-                # For subprocess players we already track processes; use blocking behavior
-                self.audio.play(filepath, blocking=True)
+            self.audio.play(filepath, blocking=True)
 
             if i < repeticiones - 1 and not self.parar_loop:
                 time.sleep(0.5)
@@ -248,6 +257,20 @@ def formatar_diferenca(segundos: float) -> str:
         return f"{horas}h {minutos}min"
 
 
+def safe_addstr(stdscr, y, x, text, attr=curses.A_NORMAL):
+    """Add string to curses screen, truncating if it would overflow."""
+    try:
+        max_y, max_x = stdscr.getmaxyx()
+        if y < 0 or y >= max_y:
+            return
+        available = max_x - x - 1
+        if available <= 0:
+            return
+        stdscr.addstr(y, x, text[:available], attr)
+    except curses.error:
+        pass
+
+
 class InterfaceCurses:
     def __init__(self, manager: ScheduleManager):
         self.manager = manager
@@ -265,18 +288,18 @@ class InterfaceCurses:
         stdscr.erase()
 
         titulo = "SINO DE IGREJA"
-        stdscr.addstr(0, (largura - len(titulo)) // 2, titulo, curses.A_BOLD | curses.color_pair(1))
+        safe_addstr(stdscr, 0, (largura - len(titulo)) // 2, titulo, curses.A_BOLD | curses.color_pair(1))
 
         horario = agora.strftime("%H:%M:%S")
         data = agora.strftime("%d/%m/%Y")
-        stdscr.addstr(2, 2, f"{horario}", curses.A_BOLD)
-        stdscr.addstr(2, 12, data)
+        safe_addstr(stdscr, 2, 2, f"{horario}", curses.A_BOLD)
+        safe_addstr(stdscr, 2, 12, data)
 
         if self.manager.ultimo_toque:
             ultimo = self.manager.ultimo_toque.strftime("%H:%M:%S")
-            stdscr.addstr(3, 2, f"Último toque: {ultimo}")
+            safe_addstr(stdscr, 3, 2, f"Último toque: {ultimo}")
 
-        stdscr.addstr(5, 2, "PRÓXIMOS TOQUES:", curses.A_BOLD)
+        safe_addstr(stdscr, 5, 2, "PRÓXIMOS TOQUES:", curses.A_BOLD)
 
         toques = self.manager.obter_proximos_toques(13)
         for i, toque in enumerate(toques):
@@ -289,19 +312,19 @@ class InterfaceCurses:
             texto = f"[{num_key}] {hora_str(toque['hora'], toque['minuto'])}  {toque['som']:12s}  x{toque['repeticoes']}  {diff_str}"
 
             if i == 0:
-                stdscr.addstr(linha, 2, texto, curses.A_REVERSE)
+                safe_addstr(stdscr, linha, 2, texto, curses.A_REVERSE)
             else:
-                stdscr.addstr(linha, 2, texto)
+                safe_addstr(stdscr, linha, 2, texto)
 
         if self.manager.tocando_agora:
             msg = "TOCANDO..."
-            stdscr.addstr(altura // 2, (largura - len(msg)) // 2, msg, curses.A_BOLD | curses.color_pair(2))
+            safe_addstr(stdscr, altura // 2, (largura - len(msg)) // 2, msg, curses.A_BOLD | curses.color_pair(2))
 
         rodape = f"[Q] Sair  [R] Recarregar  [T] Sino  [S] Parar  [1-9] Testar   v{__version__}"
-        stdscr.addstr(altura - 1, (largura - len(rodape)) // 2, rodape, curses.A_DIM)
+        safe_addstr(stdscr, altura - 1, (largura - len(rodape)) // 2, rodape, curses.A_DIM)
 
         sobre_linha = f"contato@pedropaulo.net | {__repo__}"
-        stdscr.addstr(altura - 2, (largura - len(sobre_linha)) // 2, sobre_linha, curses.A_DIM)
+        safe_addstr(stdscr, altura - 2, (largura - len(sobre_linha)) // 2, sobre_linha, curses.A_DIM)
 
         stdscr.refresh()
 
@@ -325,20 +348,32 @@ class InterfaceCurses:
             elif key == ord('r') or key == ord('R'):
                 self.manager.carregar_config()
             elif key == ord('t') or key == ord('T'):
-                sonidos = self.manager.config.get("sons", {})
-                if "sino" in sonidos:
-                    som = sonidos["sino"]
-                    threading.Thread(target=lambda s=som: self.manager.audio.play(s, blocking=True)).start()
+                if not self.manager.tocando_agora:
+                    sonidos = self.manager.config.get("sons", {})
+                    if "sino" in sonidos:
+                        som = sonidos["sino"]
+                        threading.Thread(target=lambda s=som: self.manager.audio.play(s, blocking=True), daemon=True).start()
             elif key == ord('s') or key == ord('S'):
                 self.manager.parar_audio()
             elif key == ord(' ') or key == 10:
-                sonidos = self.manager.config.get("sons", {})
-                if "sino" in sonidos:
-                    som = sonidos["sino"]
-                    def tocar_forcado(s=som):
-                        for i in range(3):
-                            self.manager.audio.play(s, blocking=True)
-                    threading.Thread(target=tocar_forcado).start()
+                if not self.manager.tocando_agora:
+                    sonidos = self.manager.config.get("sons", {})
+                    if "sino" in sonidos:
+                        som = sonidos["sino"]
+                        def tocar_forcado(s=som):
+                            self.manager.tocando_agora = True
+                            self.manager.parar_loop = False
+                            self.manager.audio._stop_requested = False
+                            try:
+                                for i in range(3):
+                                    if self.manager.parar_loop:
+                                        break
+                                    self.manager.audio.play(s, blocking=True)
+                                    if i < 2 and not self.manager.parar_loop:
+                                        time.sleep(0.5)
+                            finally:
+                                self.manager.tocando_agora = False
+                        threading.Thread(target=tocar_forcado, daemon=True).start()
             elif 48 < key < 58:
                 idx = key - 49
                 toques = self.manager.obter_proximos_toques(13)
@@ -346,13 +381,13 @@ class InterfaceCurses:
                     item = toques[idx]
                     def tocar_item(it=item):
                         self.manager.tocar_sino(it)
-                    threading.Thread(target=tocar_item).start()
+                    threading.Thread(target=tocar_item, daemon=True).start()
 
             agora = datetime.now()
 
             if agora.minute != ultimo_minuto:
                 ultimo_minuto = agora.minute
-                threading.Thread(target=self.manager.verificar_e_tocar).start()
+                threading.Thread(target=self.manager.verificar_e_tocar, daemon=True).start()
 
             if agora.second != ultimo_segundo:
                 ultimo_segundo = agora.second
@@ -362,6 +397,7 @@ class InterfaceCurses:
 
 
 def modo_console(manager: ScheduleManager):
+    exibir_sobre()
     print("SINO DE IGREJA - Modo Console")
     print("=" * 40)
     print(f"Configuração: {CONFIG_FILE}")
@@ -370,20 +406,24 @@ def modo_console(manager: ScheduleManager):
 
     ultimo_minuto = -1
 
-    while manager.running:
-        agora = datetime.now()
+    try:
+        while manager.running:
+            agora = datetime.now()
 
-        if agora.minute != ultimo_minuto:
-            ultimo_minuto = agora.minute
-            manager.verificar_e_tocar()
+            if agora.minute != ultimo_minuto:
+                ultimo_minuto = agora.minute
+                threading.Thread(target=manager.verificar_e_tocar, daemon=True).start()
 
-        proximo = manager.obter_proximo_toque_ativo()
+            proximo = manager.obter_proximo_toque_ativo()
 
-        if proximo:
-            diff = formatar_diferenca(proximo["diferenca"])
-            print(f"\r{agora.strftime('%H:%M:%S')} Próximo: {hora_str(proximo['hora'], proximo['minuto'])} ({diff})", end="")
+            if proximo:
+                diff = formatar_diferenca(proximo["diferenca"])
+                print(f"\r{agora.strftime('%H:%M:%S')} Próximo: {hora_str(proximo['hora'], proximo['minuto'])} ({diff})", end="")
 
-        time.sleep(1)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nEncerrando...")
+        manager.running = False
     print()
 
 
@@ -397,7 +437,6 @@ def main():
         sys.exit(1)
 
     if len(sys.argv) > 1 and sys.argv[1] == "--console":
-        exibir_sobre()
         modo_console(manager)
     elif CURSES_DISPONIVEL:
         try:
