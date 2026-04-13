@@ -21,6 +21,19 @@ except ImportError:
     curses = None
 
 CONFIG_FILE = "config.json"
+__version__ = "1.0.0"
+__author__ = "Pedro Paulo"
+__email__ = "contato@pedropaulo.net"
+__repo__ = "https://github.com/pedropaulonet/sino_de_igreja"
+
+
+def exibir_sobre():
+    print("Sino de Igreja")
+    print(f"Versão {__version__}")
+    print(f"LICENSE: MIT - https://opensource.org/licenses/MIT")
+    print(f"Contato: {__email__}")
+    print(f"Repositório: {__repo__}")
+    print()
 
 
 class AudioPlayer:
@@ -284,8 +297,11 @@ class InterfaceCurses:
             msg = "TOCANDO..."
             stdscr.addstr(altura // 2, (largura - len(msg)) // 2, msg, curses.A_BOLD | curses.color_pair(2))
 
-        rodape = "[Q] Sair  [R] Recarregar  [T] Sino  [S] Parar  [1-9] Testar"
+        rodape = f"[Q] Sair  [R] Recarregar  [T] Sino  [S] Parar  [1-9] Testar   v{__version__}"
         stdscr.addstr(altura - 1, (largura - len(rodape)) // 2, rodape, curses.A_DIM)
+
+        sobre_linha = f"contato@pedropaulo.net | {__repo__}"
+        stdscr.addstr(altura - 2, (largura - len(sobre_linha)) // 2, sobre_linha, curses.A_DIM)
 
         stdscr.refresh()
 
@@ -372,11 +388,16 @@ def modo_console(manager: ScheduleManager):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("--sobre", "--about"):
+        exibir_sobre()
+        sys.exit(0)
+
     manager = ScheduleManager(CONFIG_FILE)
     if not manager.carregar_config():
         sys.exit(1)
 
     if len(sys.argv) > 1 and sys.argv[1] == "--console":
+        exibir_sobre()
         modo_console(manager)
     elif CURSES_DISPONIVEL:
         try:
