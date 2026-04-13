@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sino de Igreja - How To (Técnico)</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #2d8f2d; padding-bottom: 10px; }
+        h2 { color: #2d8f2d; margin-top: 35px; }
+        h3 { color: #666; margin-top: 25px; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .class { color: #2d8f2d; font-weight: bold; }
+        .method { color: #9b59b6; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 15px; margin: 15px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #2d8f2d; color: white; }
+        .flow { background: #e8f4fd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Sino de Igreja - How To Técnico</h1>
+    <p>Documentação técnica do programa. Feito para quem precisar mexer depois.</p>
+
+    <h2>🛠️ Stack</h2>
+    <ul>
+        <li><strong>Linguagem:</strong> Python 3</li>
+        <li><strong>Interface:</strong> curses (biblioteca padrão do Linux)</li>
+        <li><strong>Áudio:</strong> pygame (preferencial) ou fallback: ffplay, paplay, aplay, omxplayer</li>
+        <li><strong>Config:</strong> JSON</li>
+        <li><strong>Plataforma:</strong> Linux, Raspberry Pi (ARM)</li>
+    </ul>
+
+    <h2>🏗️ Arquitetura</h2>
+    <p>O programa é baseado em 3 classes principais:</p>
+
+    <h3><span class="class">AudioPlayer</span></h3>
+    <p>Cuida de tocar e parar os áudios. Detecta automaticamente qual player está disponível no sistema.</p>
+    <ul>
+        <li><span class="method">__init__()</span> - Procura players: pygame → ffplay → paplay → aplay → omxplayer</li>
+        <li><span class="method">play(filepath, blocking)</span> - Toca um arquivo. blocking=True espera terminar.</li>
+        <li><span class="method">stop()</span> - Para o player atual (cada um tem seu comando de kill)</li>
+    </ul>
+
+    <h3><span class="class">ScheduleManager</span></h3>
+    <p>Gerencia horários e toques. O "cérebro" do programa.</p>
+    <ul>
+        <li><span class="method">carregar_config()</span> - Lê o config.json</li>
+        <li><span class="method">hora_permitida()</span> - Retorna sempre True. Função mantida para possível uso futuro.</li>
+        <li><span class="method">obter_proximos_toques(limite)</span> - Lista os próximos horários ordenados</li>
+        <li><span class="method">tocar_sino(item)</span> - Toca o sino X vezes. Tem flag <code>parar_loop</code> para parar quando [S] é pressionado</li>
+        <li><span class="method">parar_audio()</span> - Para o som E o loop de repetições</li>
+        <li><span class="method">verificar_e_tocar()</span> - Called a cada minuto. Verifica se é hora de tocar e executa</li>
+    </ul>
+
+    <h3><span class="class">InterfaceCurses</span></h3>
+    <p>Interface visual do terminal. Usa caracteres de controle para desenhar na tela.</p>
+    <ul>
+        <li><span class="method">iniciar()</span> - Inicia o curses com wrapper</li>
+        <li><span class="method">_desenhar(stdscr)</span> - Desenha a UI. Só redesenha quando segundo muda (evita flicker)</li>
+        <li><span class="method">_loop_principal(stdscr)</span> - Loop principal. Lê teclas e atualiza a cada 0.1s</li>
+    </ul>
+
+    <h2>📋 Fluxo de Execução</h2>
+    <div class="flow">
+    <pre>
+main()
+  ├── carrega config.json
+  ├── se --console → modo_console()
+  └── senão → InterfaceCurses.iniciar()
+        └── curses.wrapper(_loop_principal)
+              ├── loop a cada 0.1s
+              │   ├── lê tecla
+              │   │   ├── Q → sai
+              │   │   ├── R → recarrega config
+              │   │   ├── T → toca sino 1x
+              │   │   ├── S → para áudio e loop
+              │   │   ├── ESPAÇO → toca sino 3x
+              │   │   └── 1-9 → toca horário específico
+              │   ├── verifica minuto → verificar_e_tocar()
+              │   └── redesenha se segundo mudou
+              └── _desenhar() → mostra relógio, lista de próximos toques, rodapé
+    </pre>
+    </div>
+
+    <h2>🎹 Mapeamento de Teclas</h2>
+    <table>
+        <tr><th>Código</th><th>Tecla</th><th>Ação</th><th>Onde</th></tr>
+        <tr><td><code>ord('q')</code></td><td>Q</td><td>Sair</td><td>_loop_principal</td></tr>
+        <tr><td><code>ord('r')</code></td><td>R</td><td>Recarregar config</td><td>_loop_principal</td></tr>
+        <tr><td><code>ord('t')</code></td><td>T</td><td>Testar sino (1x)</td><td>_loop_principal</td></tr>
+        <tr><td><code>ord('s')</code></td><td>S</td><td>Parar tudo</td><td>_loop_principal</td></tr>
+        <tr><td><code>ord(' ')</code></td><td>ESPAÇO</td><td>Forçar 3x</td><td>_loop_principal</td></tr>
+        <tr><td><code>48 &lt; key &lt; 58</code></td><td>1-9</td><td>Testar item</td><td>_loop_principal</td></tr>
+    </table>
+
+    <h2>📁 config.json</h2>
+    <pre>
+{
+  "sons": {            # Mapeamento nome → arquivo
+    "sino": "sounds/sino.mp3",
+    "nossa_senhora": "sounds/nossa_senhora.mp3"
+  },
+  "programacao": [     # Lista de toques
+    {
+      "hora": 7,       # 0-23
+      "minuto": 0,     # 0-59
+      "som": "sino",   # chave do mapa "sons"
+      "repeticoes": 7  # quantas vezes toca
+    }
+  ]
+}
+    </pre>
+
+    <h2>🔊 Players de Áudio (fallback chain)</h2>
+    <table>
+        <tr><th>Player</th><th>Quando usado</th><th>Comando stop()</th></tr>
+        <tr><td>pygame</td><td>Sempre que disponível</td><td>pygame.mixer.music.stop()</td></tr>
+        <tr><td>ffplay</td><td>ffmpeg instalado</td><td>pkill -f ffplay</td></tr>
+        <tr><td>paplay</td><td>PulseAudio</td><td>pkill -9 -x paplay</td></tr>
+        <tr><td>aplay</td><td>ALSA</td><td>pkill -9 -x aplay</td></tr>
+        <tr><td>omxplayer</td><td>Raspberry Pi HDMI</td><td>pkill -f omxplayer</td></tr>
+    </table>
+
+    <h2>🐛 Debugging</h2>
+    <ul>
+        <li><strong>LSP errors no VS Code:</strong> Falsos positivos. pygame e curses são resolvidos em runtime. O código funciona.</li>
+        <li><strong>Sem áudio:</strong> Verifique se o arquivo MP3 existe, se não está corrompido, e se o player tá instalado</li>
+        <li><strong>Não sai com Q:</strong> Verifica se o terminal suporta curses (executar em terminal real)</li>
+    </ul>
+
+    <h2>✏️ Adicionar novo som</h2>
+    <ol>
+        <li>Coloque o MP3 em <code>sounds/</code></li>
+        <li>Adicione no config.json:
+            <pre>{"hora": 12, "minuto": 0, "som": "novo_som", "repeticoes": 3}</pre>
+        </li>
+        <li>Adicione o mapeamento em "sons":
+            <pre>"novo_som": "sounds/novo_som.mp3"</pre>
+        </li>
+        <li>Pressione R para recarregar</li>
+    </ol>
+
+    <h2>🔧 Modificar horários</h2>
+    <p>Edite direto no config.json. Por exemplo, para tocar às 15h:</p>
+    <pre>{"hora": 15, "minuto": 0, "som": "sino", "repeticoes": 3}</pre>
+
+
+</body>
+</html>

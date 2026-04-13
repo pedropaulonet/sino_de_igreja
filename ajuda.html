@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sino de Igreja - Como Usar</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #4a90d9; padding-bottom: 10px; }
+        h2 { color: #4a90d9; margin-top: 30px; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        .comando { background: #e8f4fd; border-left: 4px solid #4a90d9; padding: 10px 15px; margin: 10px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #4a90d9; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Sino de Igreja</h1>
+    <p>Programa para tocar sinos em horários programados, ideal para igrejas e Raspberry Pi.</p>
+
+    <h2>📦 Instalação</h2>
+    <p>Pré-requisitos:</p>
+    <ul>
+        <li>Python 3.6+</li>
+        <li>pygame (opcional mas recomendado)</li>
+        <li>Arquivos de áudio MP3</li>
+    </ul>
+    <div class="comando">
+        pip install pygame
+    </div>
+    <p>Se pygame não estiver disponível, o programa usa automaticamente: <code>ffplay</code> (ffmpeg), <code>paplay</code> (PulseAudio), <code>aplay</code> (ALSA) ou <code>omxplayer</code> (Raspberry Pi).</p>
+
+    <h2>🎮 Controles</h2>
+    <table>
+        <tr><th>Tecla</th><th>Ação</th></tr>
+        <tr><td><code>Q</code></td><td>Sair do programa</td></tr>
+        <tr><td><code>R</code></td><td>Recarregar configuração do config.json</td></tr>
+        <tr><td><code>T</code></td><td>Testar o som do sino (uma vez)</td></tr>
+        <tr><td><code>S</code></td><td>Parar o som que está tocando</td></tr>
+        <tr><td><code>ESPAÇO</code></td><td>Forçar toque do sino 3 vezes</td></tr>
+        <tr><td><code>1-9</code></td><td>Testar um horário específico da lista</td></tr>
+    </table>
+
+    <h2>⚙️ Configuração</h2>
+    <p>Edite o arquivo <code>config.json</code> para configurar horários e sons. Exemplo mínimo:</p>
+    <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px;">
+{
+  "sons": {
+    "sino": "sounds/sino.mp3",
+    "nossa_senhora": "sounds/nossa_senhora.mp3"
+  },
+  "programacao": [
+    {"hora": 7, "minuto": 0, "som": "sino", "repeticoes": 7},
+    {"hora": 19, "minuto": 0, "som": "nossa_senhora", "repeticoes": 1}
+  ]
+}
+    </pre>
+
+    <h3>Campos do config.json:</h3>
+    <ul>
+        <li><strong>sons</strong> - Mapeia nomes (chaves) para arquivos MP3 em <code>sounds/</code>.</li>
+        <li><strong>programacao</strong> - Lista de toques (cada item é um horário).</li>
+        <li><strong>hora</strong> - Hora do toque (0-23).</li>
+        <li><strong>minuto</strong> - Minuto do toque (0-59).</li>
+        <li><strong>som</strong> - Chave do som definido em <code>sons</code>.</li>
+        <li><strong>repeticoes</strong> - Quantas vezes o som será reproduzido.</li>
+    </ul>
+
+    <h2>🚀 Como Executar</h2>
+    <h3>Modo gráfico (recomendado):</h3>
+    <div class="comando">./sino_igreja.sh</div>
+    <p>ou</p>
+    <div class="comando">python3 sino_igreja.py</div>
+
+    <h3>Modo console (sem interface):</h3>
+    <div class="comando">python3 sino_igreja.py --console</div>
+
+    <h2>📁 Estrutura de Arquivo Inicial</h2>
+    <pre>
+sino.bash/
+├── sino_igreja.py      # Programa principal
+├── sino_igreja.sh      # Script de inicialização
+├── config.json         # Configuração
+├── requirements.txt   # Dependências Python
+└── sounds/            # Arquivos de áudio
+    ├── sino.mp3
+    └── nossa_senhora.mp3
+    </pre>
+
+</body>
+</html>

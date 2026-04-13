@@ -1,0 +1,14 @@
+[Unit]
+Description=Sino de Igreja - toca sinos programados
+After=network.target sound.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/sino.bash
+ExecStart=/usr/bin/python3 /home/pi/sino.bash/sino_igreja.py --console
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
