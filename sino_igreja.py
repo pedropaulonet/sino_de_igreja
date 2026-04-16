@@ -28,11 +28,15 @@ __repo__ = "https://github.com/pedropaulonet/sino_de_igreja"
 
 
 def exibir_sobre():
-    print("Sino de Igreja")
-    print(f"Versão {__version__}")
-    print(f"LICENSE: MIT - https://opensource.org/licenses/MIT")
-    print(f"Contato: {__email__}")
-    print(f"Repositório: {__repo__}")
+    print()
+    print("SINO DE IGREJA")
+    print("-" * 45)
+    print(f"  Versao:      {__version__}")
+    print(f"  Autor:       {__author__}")
+    print(f"  Email:       {__email__}")
+    print(f"  Repositorio: {__repo__}")
+    print(f"  Descricao:   Sistema de toques programados para igrejas")
+    print(f"  Licenca:     MIT License")
     print()
 
 
@@ -320,7 +324,7 @@ class InterfaceCurses:
             msg = "TOCANDO..."
             safe_addstr(stdscr, altura // 2, (largura - len(msg)) // 2, msg, curses.A_BOLD | curses.color_pair(2))
 
-        rodape = f"[Q] Sair  [R] Recarregar  [T] Sino  [S] Parar  [1-9] Testar   v{__version__}"
+        rodape = f"[Q] Sair  [A] Sobre  [R] Recarregar  [T] Sino  [S] Parar  [1-9] Testar   v{__version__}"
         safe_addstr(stdscr, altura - 1, (largura - len(rodape)) // 2, rodape, curses.A_DIM)
 
         sobre_linha = f"contato@pedropaulo.net | {__repo__}"
@@ -345,6 +349,26 @@ class InterfaceCurses:
             if key == ord('q') or key == ord('Q'):
                 self.manager.running = False
                 break
+            elif key == ord('a') or key == ord('A'):
+                stdscr.nodelay(False)
+                stdscr.erase()
+                about_lines = [
+                    "SINO DE IGREJA",
+                    "-" * 45,
+                    f"  Versao:      {__version__}",
+                    f"  Autor:       {__author__}",
+                    f"  Email:       {__email__}",
+                    f"  Repositorio: {__repo__}",
+                    "  Descricao:   Sistema de toques programados para igrejas",
+                    "  Licenca:     MIT License",
+                    "",
+                    "Pressione qualquer tecla para continuar...",
+                ]
+                for i, line in enumerate(about_lines):
+                    safe_addstr(stdscr, 2 + i, 2, line)
+                stdscr.refresh()
+                stdscr.getkey()
+                stdscr.nodelay(True)
             elif key == ord('r') or key == ord('R'):
                 self.manager.carregar_config()
             elif key == ord('t') or key == ord('T'):

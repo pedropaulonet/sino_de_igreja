@@ -24,17 +24,24 @@
     <h1>🔧 Sino de Igreja - How To Técnico</h1>
     <p>Documentação técnica do programa. Feito para quem precisar mexer depois.</p>
 
+    <h2>📷 Screenshots</h2>
+    <p><strong>Interface Terminal (curses):</strong></p>
+    <img src="imagens/screenshoot.png" alt="Interface Terminal" style="max-width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+    <p><strong>Interface Gráfica (Tkinter):</strong></p>
+    <img src="imagens/screenshoot-gui.png" alt="Interface GUI" style="max-width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+
     <h2>🛠️ Stack</h2>
     <ul>
         <li><strong>Linguagem:</strong> Python 3</li>
-        <li><strong>Interface:</strong> curses (biblioteca padrão do Linux)</li>
+        <li><strong>Interface curses:</strong> biblioteca padrão do Linux (terminal)</li>
+        <li><strong>Interface Tkinter:</strong> GUI moderna com tema dark</li>
         <li><strong>Áudio:</strong> pygame (preferencial) ou fallback: ffplay, paplay, aplay, omxplayer</li>
         <li><strong>Config:</strong> JSON</li>
         <li><strong>Plataforma:</strong> Linux, Raspberry Pi (ARM)</li>
     </ul>
 
     <h2>🏗️ Arquitetura</h2>
-    <p>O programa é baseado em 3 classes principais:</p>
+    <p>O programa é baseado em 4 classes principais:</p>
 
     <h3><span class="class">AudioPlayer</span></h3>
     <p>Cuida de tocar e parar os áudios. Detecta automaticamente qual player está disponível no sistema.</p>
@@ -56,11 +63,21 @@
     </ul>
 
     <h3><span class="class">InterfaceCurses</span></h3>
-    <p>Interface visual do terminal. Usa caracteres de controle para desenhar na tela.</p>
+    <p>Interface visual do terminal (curses). Usa caracteres de controle para desenhar na tela.</p>
     <ul>
         <li><span class="method">iniciar()</span> - Inicia o curses com wrapper</li>
         <li><span class="method">_desenhar(stdscr)</span> - Desenha a UI. Só redesenha quando segundo muda (evita flicker)</li>
         <li><span class="method">_loop_principal(stdscr)</span> - Loop principal. Lê teclas e atualiza a cada 0.1s</li>
+    </ul>
+
+    <h3><span class="class">SinoGUI</span></h3>
+    <p>Interface gráfica (Tkinter). Janela principal com relógio, status e botões de controle.</p>
+    <ul>
+        <li><span class="method">__init__(root)</span> - Inicializa janela, cards, botões e threads</li>
+        <li><span class="method">_setup_ui()</span> - Configura layout com header, cards e grid de botões</li>
+        <li><span class="method">_abrir_sobre()</span> - Abre janela modal com informações do programa</li>
+        <li><span class="method">_tocar_sino()</span> - Executa toque em thread separada</li>
+        <li><span class="method">_iniciar_atualizacao()</span> - Loop de atualização do relógio e verificação de toques</li>
     </ul>
 
     <h2>📋 Fluxo de Execução</h2>
@@ -69,19 +86,24 @@
 main()
   ├── carrega config.json
   ├── se --console → modo_console()
-  └── senão → InterfaceCurses.iniciar()
-        └── curses.wrapper(_loop_principal)
-              ├── loop a cada 0.1s
-              │   ├── lê tecla
-              │   │   ├── Q → sai
-              │   │   ├── R → recarrega config
-              │   │   ├── T → toca sino 1x
-              │   │   ├── S → para áudio e loop
-              │   │   ├── ESPAÇO → toca sino 3x
-              │   │   └── 1-9 → toca horário específico
-              │   ├── verifica minuto → verificar_e_tocar()
-              │   └── redesenha se segundo mudou
-              └── _desenhar() → mostra relógio, lista de próximos toques, rodapé
+  ├── se sino_igreja.py → InterfaceCurses.iniciar()
+  │     └── curses.wrapper(_loop_principal)
+  │           ├── loop a cada 0.1s
+  │           │   ├── lê tecla
+  │           │   │   ├── Q → sai
+  │           │   │   ├── R → recarrega config
+  │           │   │   ├── T → toca sino 1x
+  │           │   │   ├── S → para áudio e loop
+  │           │   │   ├── ESPAÇO → toca sino 3x
+  │           │   │   └── 1-9 → toca horário específico
+  │           │   ├── verifica minuto → verificar_e_tocar()
+  │           │   └── redesenha se segundo mudou
+  │           └── _desenhar() → mostra relógio, lista de próximos toques, rodapé
+  └── senão (sino_igreja_gui.py) → SinoGUI.iniciar()
+        └── tkinter.Tk().mainloop()
+              ├── relógio atualizado a cada 0.5s
+              ├── lista de próximos toques atualizada a cada minuto
+              └── botões: Tocar, Parar, Atualizar, Testar, Config JSON, Sobre
     </pre>
     </div>
 

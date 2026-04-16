@@ -20,6 +20,12 @@
     <h1>🔔 Sino de Igreja</h1>
     <p>Programa para tocar sinos em horários programados, ideal para igrejas e Raspberry Pi.</p>
 
+    <h2>📷 Interfaces Disponíveis</h2>
+    <p><strong>Interface Gráfica (Tkinter):</strong></p>
+    <img src="imagens/screenshoot-gui.png" alt="Interface GUI" style="max-width: 100%; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 20px;">
+    <p><strong>Interface Terminal (curses):</strong></p>
+    <img src="imagens/screenshoot.png" alt="Interface Terminal" style="max-width: 100%; border: 1px solid #ccc; border-radius: 5px;">
+
     <h2>📦 Instalação</h2>
     <p>Pré-requisitos:</p>
     <ul>
@@ -32,7 +38,7 @@
     </div>
     <p>Se pygame não estiver disponível, o programa usa automaticamente: <code>ffplay</code> (ffmpeg), <code>paplay</code> (PulseAudio), <code>aplay</code> (ALSA) ou <code>omxplayer</code> (Raspberry Pi).</p>
 
-    <h2>🎮 Controles</h2>
+    <h2>🎮 Controles - Interface Terminal (curses)</h2>
     <table>
         <tr><th>Tecla</th><th>Ação</th></tr>
         <tr><td><code>Q</code></td><td>Sair do programa</td></tr>
@@ -41,6 +47,19 @@
         <tr><td><code>S</code></td><td>Parar o som que está tocando</td></tr>
         <tr><td><code>ESPAÇO</code></td><td>Forçar toque do sino 3 vezes</td></tr>
         <tr><td><code>1-9</code></td><td>Testar um horário específico da lista</td></tr>
+    </table>
+
+    <h2>🎮 Controles - Interface Gráfica (Tkinter)</h2>
+    <p>A interface gráfica possui botões na tela:</p>
+    <table>
+        <tr><th>Botão</th><th>Ação</th></tr>
+        <tr><td><strong>Ativo/Inativo</strong></td><td>Liga ou desliga o sistema de toques automáticos</td></tr>
+        <tr><td><strong>Tocar</strong></td><td>Toca o sino principal (3 vezes)</td></tr>
+        <tr><td><strong>Parar</strong></td><td>Para o som que está tocando</td></tr>
+        <tr><td><strong>Atualizar</strong></td><td>Recarrega o config.json</td></tr>
+        <tr><td><strong>Testar</strong></td><td>Abre janela para testar sons individualmente</td></tr>
+        <tr><td><strong>Config JSON</strong></td><td>Abre o arquivo de configuração no editor padrão</td></tr>
+        <tr><td><strong>Sobre</strong></td><td>Abre janela com informações do programa</td></tr>
     </table>
 
     <h2>⚙️ Configuração</h2>
@@ -69,7 +88,13 @@
     </ul>
 
     <h2>🚀 Como Executar</h2>
-    <h3>Modo gráfico (recomendado):</h3>
+
+    <h3>Interface Gráfica (Tkinter) - modo janela:</h3>
+    <div class="comando">./sino_igreja_gui.sh</div>
+    <p>ou</p>
+    <div class="comando">python3 sino_igreja_gui.py</div>
+
+    <h3>Interface Terminal (curses) - modo gráfico no terminal:</h3>
     <div class="comando">./sino_igreja.sh</div>
     <p>ou</p>
     <div class="comando">python3 sino_igreja.py</div>
@@ -77,14 +102,19 @@
     <h3>Modo console (sem interface):</h3>
     <div class="comando">python3 sino_igreja.py --console</div>
 
+    <h2>📋 Ver informações do programa</h2>
+    <div class="comando">python3 sino_igreja.py --sobre</div>
+
     <h2>📁 Estrutura de Arquivo Inicial</h2>
     <pre>
 sino.bash/
-├── sino_igreja.py      # Programa principal
-├── sino_igreja.sh      # Script de inicialização
-├── config.json         # Configuração
-├── requirements.txt   # Dependências Python
-└── sounds/            # Arquivos de áudio
+├── sino_igreja.py          # Programa principal (interface terminal/curses)
+├── sino_igreja_gui.py      # Interface gráfica (Tkinter)
+├── sino_igreja.sh          # Script para interface terminal
+├── sino_igreja_gui.sh      # Script para interface gráfica
+├── config.json             # Configuração
+├── requirements.txt       # Dependências Python
+└── sounds/                # Arquivos de áudio
     ├── sino.mp3
     └── nossa_senhora.mp3
     </pre>
