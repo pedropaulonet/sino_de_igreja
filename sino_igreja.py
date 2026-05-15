@@ -50,6 +50,7 @@ class AudioPlayer:
         self._stop_requested = False
         try:
             import pygame
+            pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=8192)
             pygame.mixer.init()
             self.pygame_available = True
         except ImportError:
